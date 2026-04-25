@@ -10,6 +10,7 @@ dist/
 
 # Bun lockfile (keep bun.lockb)
 # bun.lockb
+bun.lock
 
 # OS
 .DS_Store
