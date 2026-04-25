@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Round {
+  id            String    @id @default(uuid())
+  status        RoundStatus @default(BETTING)
+  crashPoint    Decimal?  @db.Decimal(10, 2)
+  hashSeed     String?
+  startedAt   DateTime?
+  crashedAt  DateTime?
+  settledAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  bets       Bet[]
+}
+
+model Bet {
+  id               String    @id @default(uuid())
+  roundId          String
+  playerId         String
+  amount          Int       // in cents - NEVER use float for money
+  status          BetStatus @default(PENDING)
+  cashoutMultiplier Decimal?  @db.Decimal(10, 2)
+  cashoutedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  round          Round    @relation(fields: [roundId], references: [id])
+}
+
+enum RoundStatus {
+  BETTING
+  RUNNING
+  SETTLED
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+}
