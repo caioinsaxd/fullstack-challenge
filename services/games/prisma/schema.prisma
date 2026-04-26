@@ -10,7 +10,8 @@ model Round {
   id            String    @id @default(uuid())
   status        RoundStatus @default(BETTING)
   crashPoint    Decimal?  @db.Decimal(10, 2)
-  hashSeed     String?
+  hash         String?
+  seed        String?
   startedAt   DateTime?
   crashedAt  DateTime?
   settledAt  DateTime?
