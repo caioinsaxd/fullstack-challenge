@@ -7,40 +7,32 @@ datasource db {
 }
 
 model Round {
-  id            String    @id @default(uuid())
-  status        RoundStatus @default(BETTING)
-  crashPoint    Decimal?  @db.Decimal(10, 2)
-  hash         String?
-  seed        String?
-  startedAt   DateTime?
-  crashedAt  DateTime?
-  settledAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  bets       Bet[]
+  id            String    @id @default(uuid()) @map("id")
+  status        String    @default("BETTING") @map("status")
+  crashPoint    Decimal?  @db.Decimal(10, 2) @map("crashpoint")
+  hash          String?   @map("hash")
+  seed          String?   @map("seed")
+  startedAt     DateTime? @map("startedat")
+  crashedAt     DateTime? @map("crashedat")
+  settledAt     DateTime? @map("settledat")
+  createdAt     DateTime  @default(now()) @map("createdat")
+  updatedAt     DateTime  @updatedAt @map("updatedat")
+  bets          Bet[]
+
+  @@map("round")
 }
 
 model Bet {
-  id               String    @id @default(uuid())
-  roundId          String
-  playerId         String
-  amount          Int       // in cents - NEVER use float for money
-  status          BetStatus @default(PENDING)
-  cashoutMultiplier Decimal?  @db.Decimal(10, 2)
-  cashoutedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  round          Round    @relation(fields: [roundId], references: [id])
-}
+  id                 String    @id @default(uuid()) @map("id")
+  roundId           String    @map("roundid")
+  playerId           String    @map("playerid")
+  amount             Int       @map("amount")
+  status             String    @default("PENDING") @map("status")
+  cashoutMultiplier Decimal?  @db.Decimal(10, 2) @map("cashoutmultiplier")
+  cashoutedAt       DateTime? @map("cashoutedat")
+  createdAt          DateTime  @default(now()) @map("createdat")
+  updatedAt          DateTime  @updatedAt @map("updatedat")
+  round              Round     @relation(fields: [roundId], references: [id])
 
-enum RoundStatus {
-  BETTING
-  RUNNING
-  SETTLED
-}
-
-enum BetStatus {
-  PENDING
-  WON
-  LOST
+  @@map("bet")
 }
