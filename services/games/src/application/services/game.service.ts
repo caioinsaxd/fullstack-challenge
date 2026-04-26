@@ -44,4 +44,9 @@ export class GameService {
 
     return this.provablyFairService.verify(round.seed, roundId);
   }
+
+  async getPlayerBets(playerId: string, page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+    return this.betRepository.findByPlayerId(playerId, limit, offset);
+  }
 }
