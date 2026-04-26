@@ -59,7 +59,7 @@ export class BetRepository {
     });
   }
 
-  async settle(roundId: string, status: string) {
+  async settle(roundId: string, status: "WON" | "LOST") {
     const pendingBets = await this.prisma.bet.findMany({
       where: { roundId, status: "PENDING" },
     });
@@ -72,5 +72,12 @@ export class BetRepository {
     );
 
     return Promise.all(updatePromises);
+  }
+
+  async updateStatus(id: string, status: "WON" | "LOST") {
+    return this.prisma.bet.update({
+      where: { id },
+      data: { status },
+    });
   }
 }
