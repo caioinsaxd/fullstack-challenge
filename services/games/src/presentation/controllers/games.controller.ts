@@ -62,4 +62,17 @@ export class GamesController {
       roundId: dto.roundId,
     });
   }
+
+  @Get("bets/me")
+  getMyBets(
+    @Query("playerId") playerId: string,
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
+  ) {
+    return this.gameService.getPlayerBets(
+      playerId,
+      parseInt(page, 10),
+      parseInt(limit, 10),
+    );
+  }
 }
