@@ -12,12 +12,17 @@
     "@nestjs/common": "^11.1.17",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "amqplib": "^1.0.3",
+    "pg": "^8.13.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.0",
     "bun-types": "latest",
+    "prisma": "^7.8.0",
     "typescript": "^5.8.3"
   }
 }
