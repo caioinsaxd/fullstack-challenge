@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Wallet {
+  id        String   @id @default(uuid()) @map("id")
+  playerId  String   @unique @map("playerid")
+  balance  Int      @default(0) @map("balance")
+  createdAt DateTime @default(now()) @map("createdat")
+  updatedAt DateTime @updatedAt @map("updatedat")
+
+  @@map("wallet")
+}
