@@ -17,3 +17,5 @@ bun.lock
 
 # Logs
 *.log
+
+/generated/prisma
