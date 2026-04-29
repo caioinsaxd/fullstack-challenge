@@ -1,8 +1,7 @@
 import { createHmac, randomBytes } from "crypto";
 
-const HOUSE_EDGE = 0.05;
-const MIN_CRASH_POINT = 100;
-const MAX_CRASH_POINT = 1000000;
+const HOUSE_EDGE = 0.03;
+const RTP = 1 - HOUSE_EDGE;
 
 export interface ProvablyFairResult {
   seed: string;
@@ -28,11 +27,15 @@ export class ProvablyFairService {
 
   calculateCrashPoint(hash: string): number {
     const hashNum = parseInt(hash.substring(0, 8), 16);
-    const normalized = hashNum / 0xFFFFFFFF;
+    const h = hashNum / 0xFFFFFFFF;
     
-    const crashPoint = (1 / (1 - normalized * (1 - HOUSE_EDGE))) * 100;
+    if (h < HOUSE_EDGE) {
+      return 1.0;
+    }
     
-    return Math.min(Math.max(crashPoint * 100, MIN_CRASH_POINT), MAX_CRASH_POINT) / 100;
+    const crashPoint = RTP / (1 - h);
+    
+    return Math.floor(crashPoint * 100) / 100;
   }
 
   generate(roundId: string): ProvablyFairResult {
