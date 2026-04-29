@@ -14,7 +14,7 @@ export enum BetStatus {
 export interface Round {
   id: string;
   status: RoundStatus | string;
-  crashPoint: number | null;
+  crashPoint: string | null;
   hash: string | null;
   seed: string | null;
   startedAt: Date | null;
@@ -31,7 +31,7 @@ export interface Bet {
   playerId: string;
   amount: number;
   status: BetStatus | string;
-  cashoutMultiplier: number | null;
+  cashoutMultiplier: string | null;
   cashoutedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -41,7 +41,9 @@ export function calculatePayout(bet: Bet): number {
   if (bet.status !== BetStatus.CASHED_OUT || !bet.cashoutMultiplier) {
     return 0;
   }
-  return Math.round(bet.amount * bet.cashoutMultiplier);
+  const amount = Number(bet.amount);
+  const multiplier = Number(bet.cashoutMultiplier);
+  return Math.round(amount * multiplier);
 }
 
 export function calculateProfit(bet: Bet): number {
