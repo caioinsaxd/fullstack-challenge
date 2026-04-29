@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
 
 const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/crash-game';
 const CLIENT_ID = 'crash-game-client';
-const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || 'http://localhost:5173';
+const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || 'http://localhost:3000';
 
 function generateCodeVerifier(): string {
   const array = new Uint8Array(32);

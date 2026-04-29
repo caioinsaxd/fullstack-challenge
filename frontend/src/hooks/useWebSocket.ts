@@ -104,54 +104,54 @@ export function useWebSocket() {
       }
     });
 
-    socket.on('multiplier:update', async (data: any) => {
-      console.log('[WS] multiplier:update received:', data);
-      if (data?.multiplier !== undefined) {
-        const multiplier = parseFloat(data.multiplier);
-        setMultiplier(multiplier);
-        
-        const store = useGameStore.getState();
-        const currentAutoCashout = store.autoCashout;
-        const currentMyBets = store.myBets;
-        const currentRoundId = store.currentRound?.id;
-        
-        if (currentAutoCashout && currentRoundId) {
-          const myPendingBet = currentMyBets.find(
-            (b) => b.roundId === currentRoundId && b.status === 'PENDING'
-          );
-          
-          if (myPendingBet && multiplier >= currentAutoCashout && !hasAutoCashedOut.current) {
-            hasAutoCashedOut.current = true;
-            console.log(`[Auto-cashout] Triggering cashout at ${multiplier}x (target: ${currentAutoCashout}x) for bet ${myPendingBet.id}`);
-            try {
-              const result = await cashout(currentRoundId);
-              if (result?.betId) {
-                console.log(`[Auto-cashout] Updating bet ${result.betId} to CASHED_OUT with multiplier ${result.cashoutMultiplier}`);
-                updateBet({
-                  id: result.betId,
-                  roundId: currentRoundId,
-                  playerId: myPendingBet.playerId,
-                  amount: myPendingBet.amount,
-                  status: 'CASHED_OUT',
-                  cashoutMultiplier: parseFloat(result.cashoutMultiplier),
-                  cashoutedAt: new Date().toISOString(),
-                  createdAt: myPendingBet.createdAt,
-                  updatedAt: new Date().toISOString(),
-                });
-                playSound('cashout');
-                console.log(`[Auto-cashout] Success at ${multiplier}x, profit: ${result?.profit}`);
-              } else {
-                console.error('[Auto-cashout] No betId in response:', result);
-                hasAutoCashedOut.current = false;
-              }
-            } catch (error) {
-              hasAutoCashedOut.current = false;
-              console.error('[Auto-cashout] Failed:', error);
-            }
-          }
-        }
-      }
-    });
+     socket.on('multiplier:update', async (data: any) => {
+       console.log('[WS] multiplier:update received:', data);
+       if (data?.multiplier !== undefined) {
+         const multiplier = parseFloat(data.multiplier);
+         setMultiplier(multiplier);
+       }
+       
+       const store = useGameStore.getState();
+       const currentAutoCashout = store.autoCashout;
+       const currentMyBets = store.myBets;
+       const currentRoundId = store.currentRound?.id;
+       
+       if (currentAutoCashout && currentRoundId) {
+         const myPendingBet = currentMyBets.find(
+           (b) => b.roundId === currentRoundId && b.status === 'PENDING'
+         );
+         
+         if (myPendingBet && multiplier >= currentAutoCashout && !hasAutoCashedOut.current) {
+           hasAutoCashedOut.current = true;
+           console.log(`[Auto-cashout] Triggering cashout at ${multiplier}x (target: ${currentAutoCashout}x) for bet ${myPendingBet.id}`);
+           try {
+             const result = await cashout(currentRoundId);
+             if (result?.betId) {
+               console.log(`[Auto-cashout] Updating bet ${result.betId} to CASHED_OUT with multiplier ${result.cashoutMultiplier}`);
+               updateBet({
+                 id: result.betId,
+                 roundId: currentRoundId,
+                 playerId: myPendingBet.playerId,
+                 amount: myPendingBet.amount,
+                 status: 'CASHED_OUT',
+                 cashoutMultiplier: parseFloat(result.cashoutMultiplier),
+                 cashoutedAt: new Date().toISOString(),
+                 createdAt: myPendingBet.createdAt,
+                 updatedAt: new Date().toISOString(),
+               });
+               playSound('cashout');
+               console.log(`[Auto-cashout] Success at ${multiplier}x, profit: ${result?.profit}`);
+             } else {
+               console.error('[Auto-cashout] No betId in response:', result);
+               hasAutoCashedOut.current = false;
+             }
+           } catch (error) {
+             hasAutoCashedOut.current = false;
+             console.error('[Auto-cashout] Failed:', error);
+           }
+         }
+       }
+     });
 
     socket.on('round:crashed', (data: any) => {
       if (data?.crashPoint !== undefined) {
