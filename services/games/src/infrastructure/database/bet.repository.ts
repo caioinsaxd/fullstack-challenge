@@ -88,6 +88,13 @@ export class BetRepository {
     });
   }
 
+  async markFailed(id: string) {
+    return this.prisma.bet.update({
+      where: { id },
+      data: { status: "FAILED" },
+    });
+  }
+
   async delete(id: string) {
     return this.prisma.bet.delete({ where: { id } });
   }

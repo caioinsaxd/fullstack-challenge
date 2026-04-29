@@ -66,8 +66,8 @@ export async function getUser(): Promise<User> {
   return data;
 }
 
-export async function getWalletBalance(): Promise<number> {
-  const { data } = await api.get('/wallets/balance');
+export async function getWalletBalance(playerId: string): Promise<number> {
+  const { data } = await api.get(`/wallets/me?playerId=${playerId}`);
   return data.balance;
 }
 

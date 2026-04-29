@@ -54,12 +54,11 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
       
       await this.channel.assertExchange("game_events", "topic", { durable: true });
       await this.channel.assertQueue("wallet_events", { durable: true });
-      // Important: Only bind to events that will trigger wallet operations
-      // Wallet deduction happens when round starts (bets.running)
-      // Wallet credit happens when bet is cashed out or round is settled
       await this.channel.bindQueue("wallet_events", "game_events", "bets.running");
       await this.channel.bindQueue("wallet_events", "game_events", "bet.cashed_out");
       await this.channel.bindQueue("wallet_events", "game_events", "round.settled");
+      await this.channel.bindQueue("wallet_events", "game_events", "bet.deduction_failed");
+      await this.channel.bindQueue("wallet_events", "game_events", "bet.placed");
       
       console.log("RabbitMQ subscriber connected");
     } catch (error) {
@@ -85,24 +84,27 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
     await this.channel.consume("wallet_events", async (msg) => {
       if (!msg) return;
 
-      try {
+try {
         const event = JSON.parse(msg.content.toString());
+        console.log(`[Wallet] FULL EVENT: ${JSON.stringify(event)}`);
         
-        switch (event.type) {
-          case "bets.running":
-            console.log(`[Wallet] Processing bets.running event for round ${event.payload.roundId}`);
-            await this.handleBetsRunning(event.payload as BetsRunningPayload);
-            break;
-          case "bet.cashed_out":
-            console.log(`[Wallet] Processing bet.cashed_out event for player ${event.payload.playerId}`);
-            await this.handleBetCashedOut(event.payload as BetCashedOutPayload);
-            break;
-          case "round.settled":
-            console.log(`[Wallet] Processing round.settled event for round ${event.payload.roundId}`);
-            await this.handleRoundSettled(event.payload as RoundSettledPayload);
-            break;
-          default:
-            console.log(`[Wallet] Ignoring unknown event type: ${event.type}`);
+        const eventType = event.type?.trim() || "";
+        console.log(`[Wallet] Event type raw: '${eventType}'`);
+        
+        if (eventType === "bets.running") {
+          console.log(`[Wallet] Processing bets.running event for round ${event.payload.roundId}`);
+          await this.handleBetsRunning(event.payload as BetsRunningPayload);
+        } else if (eventType === "bet.cashed_out" || eventType.includes("cashed")) {
+          console.log(`[Wallet] Processing bet.cashed_out event for player ${event.payload.playerId}`);
+          await this.handleBetCashedOut(event.payload as BetCashedOutPayload);
+        } else if (eventType === "bet.placed" || eventType.includes("placed")) {
+          console.log(`[Wallet] Processing bet.placed event - deducting immediately`);
+          await this.handleBetPlaced(event.payload as BetPlacedPayload);
+        } else if (eventType === "round.settled" || eventType.includes("settled")) {
+          console.log(`[Wallet] Processing round.settled event for round ${event.payload.roundId}`);
+          await this.handleRoundSettled(event.payload as RoundSettledPayload);
+        } else {
+          console.log(`[Wallet] Ignoring unknown event: '${eventType}'`);
         }
 
         this.channel.ack(msg);
@@ -113,7 +115,7 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  private async handleBetPlaced(payload: BetPlacedPayload): Promise<void> {
+  private async handleBetPlaced(payload: BetPlacedPayload): Promise<boolean> {
     const { playerId, amount } = payload;
 
     let wallet = await this.prisma.wallet.findUnique({
@@ -121,15 +123,15 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!wallet) {
+      console.log(`[Wallet] No wallet for player ${playerId} - creating with 0 balance`);
       wallet = await this.prisma.wallet.create({
         data: { playerId, balance: 0 },
       });
-      console.log(`Created new wallet with 0 balance for player: ${playerId}`);
     }
 
     if (wallet.balance < amount) {
-      console.error(`Insufficient balance for player: ${playerId} (balance: ${wallet.balance}, bet: ${amount})`);
-      throw new Error(`Insufficient balance: have ${wallet.balance}, need ${amount}`);
+      console.log(`[Wallet] Skipping deduction - insufficient balance for player ${playerId} (${wallet.balance} < ${amount})`);
+      return false; // Signal failure - do NOT deduct
     }
 
     await this.prisma.wallet.update({
@@ -137,7 +139,8 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
       data: { balance: wallet.balance - amount },
     });
 
-    console.log(`Deducted ${amount} from player ${playerId}`);
+    console.log(`[Wallet] Deducted ${amount} from player ${playerId}`);
+    return true;
   }
 
   private async handleBetsRunning(payload: BetsRunningPayload): Promise<void> {

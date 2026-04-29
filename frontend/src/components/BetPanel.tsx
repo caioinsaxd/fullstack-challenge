@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameStore } from '../stores/gameStore';
-import { placeBet, cashout, cancelBet } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
+import { placeBet, cashout, cancelBet, getWalletBalance } from '../services/api';
 
 type BetPhase = 'none' | 'betting' | 'cashed' | 'lost';
 
@@ -117,6 +118,11 @@ export function BetPanel() {
       addBet(bet);
       setPhase('betting');
       setPlacedAmount(bet.amount);
+      
+      if (useAuthStore.getState().userId) {
+        const newBalance = await getWalletBalance(useAuthStore.getState().userId!);
+        useAuthStore.getState().setBalance(newBalance);
+      }
     } catch (err: any) {
       console.error('Place bet error:', err.response?.data || err.message);
       setError(err.response?.data?.message || 'Failed');

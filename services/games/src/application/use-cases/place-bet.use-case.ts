@@ -17,7 +17,7 @@ export interface PlaceBetOutput {
 
 @Injectable()
 export class PlaceBetUseCase {
-  constructor(
+constructor(
     private readonly roundRepository: RoundRepository,
     private readonly betRepository: BetRepository,
     private readonly publisher: RabbitMQPublisher,
@@ -25,14 +25,19 @@ export class PlaceBetUseCase {
 
   private async checkWalletBalance(playerId: string): Promise<number> {
     const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://localhost:4002";
+    const url = `${WALLET_URL}/me?playerId=${playerId}`;
+    console.log(`[PlaceBet] Checking balance at: ${url}`);
     try {
-      const response = await fetch(`${WALLET_URL}/wallets/me?playerId=${playerId}`);
+      const response = await fetch(url);
+      console.log(`[PlaceBet] Wallet response status: ${response.status}`);
       if (!response.ok) {
         return 0;
       }
       const data = await response.json();
-      return data.balance || 0;
-    } catch {
+      console.log(`[PlaceBet] Wallet data: ${JSON.stringify(data)}`);
+      return Number(data.balance) || 0;
+    } catch (e) {
+      console.log(`[PlaceBet] Wallet error: ${e.message}`);
       return 0;
     }
   }
@@ -57,7 +62,7 @@ export class PlaceBetUseCase {
 
     const balance = await this.checkWalletBalance(input.playerId);
     if (balance < input.amount) {
-      throw new Error(`Insufficient balance: you have ${balance}, need ${input.amount}`);
+      throw new Error(`Insufficient balance: you have $${(Number(balance) / 100).toFixed(2)}, need $${(Number(input.amount) / 100).toFixed(2)}`);
     }
 
     const existingBet = await this.betRepository.findByPlayerAndRound(

@@ -8,6 +8,7 @@ export enum BetStatus {
   PENDING = "PENDING",
   CASHED_OUT = "CASHED_OUT",
   LOST = "LOST",
+  FAILED = "FAILED",
 }
 
 export interface Round {

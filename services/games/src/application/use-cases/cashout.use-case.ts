@@ -23,6 +23,20 @@ export class CashoutUseCase {
     private readonly publisher: RabbitMQPublisher,
   ) {}
 
+  private async checkWalletBalance(playerId: string): Promise<number> {
+    const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://localhost:4002";
+    try {
+      const response = await fetch(`${WALLET_URL}/wallets/me?playerId=${playerId}`);
+      if (!response.ok) {
+        return 0;
+      }
+      const data = await response.json();
+      return Number(data.balance) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
   async execute(input: CashoutInput): Promise<CashoutOutput> {
     const round = await this.roundRepository.findById(input.roundId);
     
@@ -47,15 +61,23 @@ export class CashoutUseCase {
       throw new Error("Already cashed out");
     }
 
+    if (bet.status === "FAILED") {
+      throw new Error("Bet failed due to insufficient balance");
+    }
+
     if (bet.status === "LOST") {
       throw new Error("Bet already lost");
     }
 
-    // Get current multiplier from the running round
+    const balance = await this.checkWalletBalance(input.playerId);
+    if (balance >= Number(bet.amount)) {
+      throw new Error("Bet was not deducted - insufficient balance at round start");
+    }
+
     const roundStartTime = round.startedAt ? new Date(round.startedAt).getTime() : Date.now();
     const currentTime = Date.now();
     const elapsedSeconds = (currentTime - roundStartTime) / 1000;
-    const currentMultiplier = 1 + elapsedSeconds * 0.1; // Same formula as frontend
+    const currentMultiplier = 1 + elapsedSeconds * 0.1;
     
     const betAmount = Number(bet.amount);
     const profit = Math.floor(betAmount * (currentMultiplier - 1));

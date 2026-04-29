@@ -118,15 +118,13 @@ function CallbackPage() {
         setAuth(tokens.token, tokens.userId, tokens.username, tokens.email);
         setAuthToken(tokens.token);
         
-        // Fetch wallet balance
         try {
-          const balance = await getWalletBalance();
+          const balance = await getWalletBalance(tokens.userId);
           useAuthStore.getState().setBalance(balance);
         } catch (balanceErr) {
           console.warn('Failed to fetch balance:', balanceErr);
         }
         
-        // Clear OAuth params and redirect to main page
         window.history.replaceState({}, '', '/');
       } catch (err) {
         console.error('Token exchange failed:', err);
@@ -208,7 +206,6 @@ function Game() {
         setCurrentRound(current);
         setHistory(history);
         
-        // If current round is in BETTING phase, set the betting timer
         if (current && current.status === 'BETTING') {
           const { setBettingEndsAt } = useGameStore.getState();
           setBettingEndsAt(Date.now() + 10000);

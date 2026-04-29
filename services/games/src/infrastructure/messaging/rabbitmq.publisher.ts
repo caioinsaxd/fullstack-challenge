@@ -44,6 +44,16 @@ export interface RoundStartedEvent extends GameEvent {
   };
 }
 
+export interface BetFailedEvent extends GameEvent {
+  type: "bet.failed";
+  payload: {
+    playerId: string;
+    roundId: string;
+    betId: string;
+    reason: string;
+  };
+}
+
 export interface BetsRunningEvent extends GameEvent {
   type: "bets.running";
   payload: {
@@ -110,6 +120,15 @@ export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
     return this.publish("bets.running", event);
   }
 
+  async publishBetFailed(event: BetFailedEvent): Promise<boolean> {
+    return this.publish("bet.failed", event);
+  }
+
+  async publishBetPlaced(event: BetPlacedEvent): Promise<boolean> {
+    console.log(`[Publisher] Publishing bet.placed: ${JSON.stringify(event)}`);
+    return this.publish("bet.placed", event);
+  }
+
   private async publish(routingKey: string, event: GameEvent): Promise<boolean> {
     if (!this.channel) {
       console.error("RabbitMQ channel not available");
@@ -118,6 +137,7 @@ export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
 
     try {
       const message = JSON.stringify(event);
+      console.log(`[Publisher] Publishing to '${routingKey}': ${message.substring(0, 200)}`);
       return this.channel.publish("game_events", routingKey, Buffer.from(message), {
         persistent: true,
       });

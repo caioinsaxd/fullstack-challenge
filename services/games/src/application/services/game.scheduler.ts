@@ -148,17 +148,28 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
           },
           timestamp: new Date(),
         });
+        
+        for (const bet of allBets) {
+          try {
+            const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://localhost:4002";
+            const resp = await fetch(`${WALLET_URL}/wallets/me?playerId=${bet.playerId}`);
+            const wallet = await resp.json();
+            if (wallet.balance >= Number(bet.amount)) {
+              await this.betRepository.markFailed(bet.id);
+              this.logger.log(`Bet ${bet.id} marked FAILED - insufficient balance at round start`);
+            }
+          } catch (e) {
+            this.logger.error(`Failed to verify bet ${bet.id}: ${e.message}`);
+          }
+        }
       }
 
-      // Emit round started event
       this.gameEvents.emitRoundStarted(this.gameLoop.roundId, startResult);
 
-      // Emit betting ended
       this.gameEvents.emitBettingEnded(this.gameLoop.roundId);
 
       this.logger.log(`Round ${this.gameLoop.roundId} started - Crash at ${this.gameLoop.crashPoint}x`);
 
-      // Start the crash simulation
       this.runCrashSimulation();
     } catch (error) {
       this.logger.error(`Error running round: ${error.message}`);
@@ -331,7 +342,6 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    // Start new round after 2.5 seconds (allows 1.5s crash display + 1s delay)
     setTimeout(() => this.startNewRound(), 2500);
   }
 }
