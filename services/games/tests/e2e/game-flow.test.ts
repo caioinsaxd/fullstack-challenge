@@ -2,9 +2,16 @@ import { describe, it, expect, beforeAll } from "bun:test";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:8000";
 
+const mockJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0LXVzZXIiLCJ1c2VybmFtZSI6InRlc3QtdXNlciIsInJvbGVzIjpbInVzZXIiXSwiaWF0IjoxNzA0MTYwMDAwfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
 describe("Games API E2E", () => {
   let roundId: string;
   let betId: string;
+
+  const authHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${mockJwtToken}`,
+  };
 
   describe("GET /games/rounds/current", () => {
     it("should return current round", async () => {
@@ -29,12 +36,11 @@ describe("Games API E2E", () => {
   });
 
   describe("POST /games/bet", () => {
-    it("should place a bet or return error if wallet not found", async () => {
+    it("should place a bet with valid auth", async () => {
       const response = await fetch(`${BASE_URL}/games/bet`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
-          playerId: "test-player-e2e",
           amount: 1000,
         }),
       });
@@ -48,9 +54,8 @@ describe("Games API E2E", () => {
     it("should reject bet below minimum", async () => {
       const response = await fetch(`${BASE_URL}/games/bet`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
-          playerId: "test-player",
           amount: 50,
         }),
       });
@@ -61,24 +66,43 @@ describe("Games API E2E", () => {
     it("should reject bet above maximum", async () => {
       const response = await fetch(`${BASE_URL}/games/bet`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
-          playerId: "test-player",
           amount: 200000,
         }),
       });
 
       expect(response.status).toBeGreaterThanOrEqual(400);
     });
+
+    it("should reject without auth", async () => {
+      const response = await fetch(`${BASE_URL}/games/bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId: "test-player",
+          amount: 1000,
+        }),
+      });
+
+      expect(response.status).toBe(401);
+    });
   });
 
   describe("GET /games/bets/me", () => {
-    it("should return player bet history", async () => {
-      const response = await fetch(`${BASE_URL}/games/bets/me?playerId=test-player`);
+    it("should return player bet history with auth", async () => {
+      const response = await fetch(`${BASE_URL}/games/bets/me`, {
+        headers: authHeaders,
+      });
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(Array.isArray(data)).toBe(true);
+    });
+
+    it("should reject without auth", async () => {
+      const response = await fetch(`${BASE_URL}/games/bets/me`);
+      expect(response.status).toBe(401);
     });
   });
 

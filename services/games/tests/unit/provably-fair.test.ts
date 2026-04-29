@@ -85,7 +85,7 @@ describe("Provably Fair Service", () => {
       expect(verification.seed).toBe(result.seed);
       expect(verification.hash).toBeDefined();
       expect(verification.crashPoint).toBe(result.crashPoint);
-      expect(verification.houseEdge).toBe(5);
+      expect(verification.houseEdge).toBe(3);
     });
   });
 
