@@ -1,18 +1,53 @@
 _format_version: "3.0"
-
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+      exposed_headers:
+        - X-Total-Count
+      credentials: true
+      max_age: 3600
 services:
   - name: games-service
-    url: http://games:4001
+    url: http://fullstack-challenge-games-1:4001
     routes:
-      - name: games-routes
-        paths:
+      - paths:
           - /games
         strip_path: true
-
+      - paths:
+          - /socket.io
+        strip_path: true
+      - paths:
+          - /api
+        strip_path: true
+    plugins:
+      - name: cors
+      - name: rate-limiting
+        config:
+          minute: 120
+          policy: local
+          fault_tolerant: true
   - name: wallets-service
-    url: http://wallets:4002
+    url: http://fullstack-challenge-wallets-1:4002
     routes:
-      - name: wallets-routes
-        paths:
+      - paths:
           - /wallets
         strip_path: true
+    plugins:
+      - name: cors
+      - name: rate-limiting
+        config:
+          minute: 30
+          policy: local
+          fault_tolerant: true
