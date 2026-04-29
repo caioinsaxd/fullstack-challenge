@@ -10,10 +10,7 @@ if [ -n "$POSTGRES_EXTRA_DATABASES" ]; then
   for db in "${DATABASES[@]}"; do
     db=$(echo "$db" | xargs) # trim whitespace
     echo "Creating database: $db"
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-      SELECT 'CREATE DATABASE "'$db'"'
-      WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\gexec
-EOSQL
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -c "SELECT 'CREATE DATABASE \"$db\"' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')"
     echo "Database '$db' created (or already exists)."
   done
 fi

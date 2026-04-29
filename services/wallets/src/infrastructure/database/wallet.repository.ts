@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 
+const STARTING_BALANCE = parseInt(process.env.STARTING_BALANCE || "10000", 10);
+
 @Injectable()
 export class WalletRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -15,7 +17,7 @@ export class WalletRepository {
     return this.prisma.wallet.create({
       data: {
         playerId,
-        balance: 0,
+        balance: STARTING_BALANCE,
       },
     });
   }
