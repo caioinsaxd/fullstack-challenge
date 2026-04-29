@@ -6,7 +6,7 @@ interface RoundVerification {
   roundId: string;
   seed: string;
   hash: string;
-  crashPoint: number;
+  crashPoint: string;
   verified: boolean;
   houseEdge?: number;
 }
@@ -45,24 +45,24 @@ export function SeedVerificationPanel() {
         setIsVerifying(true);
         const result = await verifyRound(selectedRoundId);
         
-        setVerification({
-          roundId: selectedRoundId,
-          seed: result.seed || '',
-          hash: result.hash || '',
-          crashPoint: parseFloat(result.crashPoint) || 0,
-          verified: result.verified,
-          houseEdge: result.houseEdge,
-        });
+         setVerification({
+           roundId: selectedRoundId,
+           seed: result.seed || '',
+           hash: result.hash || '',
+           crashPoint: result.crashPoint?.toString() ?? "0",
+           verified: result.verified,
+           houseEdge: result.houseEdge,
+         });
         
-        if (result.verified) {
-          const crashPointNum = parseFloat(result.crashPoint) || 0;
-          setVerificationResult({
-            isValid: true,
-            actualCrashPoint: crashPointNum,
-            expectedCrashPoint: crashPointNum,
-            message: '✓ Provably fair verification passed! The crash point was predetermined.',
-          });
-        }
+         if (result.verified) {
+           const crashPointNum = parseFloat(result.crashPoint?.toString() ?? "0");
+           setVerificationResult({
+             isValid: true,
+             actualCrashPoint: crashPointNum,
+             expectedCrashPoint: crashPointNum,
+             message: '✓ Provably fair verification passed! The crash point was predetermined.',
+           });
+         }
       } catch (err: any) {
         const message = err.response?.data?.message || err.message || 'Failed to load verification data';
         setError(message);
@@ -75,19 +75,19 @@ export function SeedVerificationPanel() {
     loadVerification();
   }, [selectedRoundId]);
 
-  const handleVerify = useCallback(async () => {
-    if (!verification) return;
+     const handleVerify = useCallback(async () => {
+     if (!verification) return;
 
-    const crashPointNum = parseFloat(String(verification.crashPoint)) || 0;
-    setVerificationResult({
-      isValid: verification.verified,
-      actualCrashPoint: crashPointNum,
-      expectedCrashPoint: crashPointNum,
-      message: verification.verified
-        ? '✓ Verification successful! The crash point matches the seed.'
-        : '✗ Verification failed! The crash point does not match the seed.',
-    });
-  }, [verification]);
+     const crashPointNum = parseFloat(verification.crashPoint ?? "0");
+     setVerificationResult({
+       isValid: verification.verified,
+       actualCrashPoint: crashPointNum,
+       expectedCrashPoint: crashPointNum,
+       message: verification.verified
+         ? '✓ Verification successful! The crash point matches the seed.'
+         : '✗ Verification failed! The crash point does not match the seed.',
+     });
+   }, [verification]);
 
   const handleCopySeed = useCallback(() => {
     if (verification?.seed) {
@@ -123,23 +123,23 @@ export function SeedVerificationPanel() {
           SELECT ROUND TO VERIFY - Click a round below
         </label>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-          {currentRound && currentRound.status === 'ENDED' && (
-            <button
-              onClick={() => setSelectedRoundId(currentRound.id)}
-              style={{
-                padding: '0.5rem 1rem',
-                background: selectedRoundId === currentRound.id ? '#10b981' : '#334155',
-                border: 'none',
-                borderRadius: '0.25rem',
-                color: '#fff',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                fontFamily: 'monospace',
-              }}
-            >
-              Current ({typeof currentRound.crashPoint === 'number' ? currentRound.crashPoint.toFixed(2) : parseFloat(String(currentRound.crashPoint)).toFixed(2)}x)
-            </button>
-          )}
+           {currentRound && currentRound.status === 'ENDED' && (
+             <button
+               onClick={() => setSelectedRoundId(currentRound.id)}
+               style={{
+                 padding: '0.5rem 1rem',
+                 background: selectedRoundId === currentRound.id ? '#10b981' : '#334155',
+                 border: 'none',
+                 borderRadius: '0.25rem',
+                 color: '#fff',
+                 fontSize: '0.75rem',
+                 cursor: 'pointer',
+                 fontFamily: 'monospace',
+               }}
+             >
+               Current ({parseFloat(currentRound.crashPoint?.toString() ?? "0").toFixed(2)}x)
+             </button>
+           )}
         </div>
         <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>
           Previous rounds:
@@ -160,9 +160,9 @@ export function SeedVerificationPanel() {
                 cursor: 'pointer',
                 fontFamily: 'monospace',
               }}
-            >
-              {round.crashPoint ? `${typeof round.crashPoint === 'number' ? round.crashPoint.toFixed(2) : parseFloat(String(round.crashPoint)).toFixed(2)}x` : '...'}
-            </button>
+             >
+               {round.crashPoint ? `${parseFloat(round.crashPoint?.toString() ?? "0").toFixed(2)}x` : '...'}
+             </button>
           ))}
         </div>
         {roundHistory && roundHistory.length === 0 && (
@@ -188,9 +188,9 @@ export function SeedVerificationPanel() {
               <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
                 CRASH POINT
               </label>
-              <div style={{ fontSize: '1.5rem', fontFamily: 'monospace', color: '#10b981', fontWeight: 'bold' }}>
-                {(typeof verification.crashPoint === 'number' ? verification.crashPoint : parseFloat(String(verification.crashPoint)) || 0).toFixed(2)}x
-              </div>
+               <div style={{ fontSize: '1.5rem', fontFamily: 'monospace', color: '#10b981', fontWeight: 'bold' }}>
+                 {parseFloat(verification.crashPoint ?? "0").toFixed(2)}x
+               </div>
             </div>
             <div>
               <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
