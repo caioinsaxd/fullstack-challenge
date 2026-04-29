@@ -52,14 +52,14 @@ export class BetRepository {
     return this.prisma.bet.update({
       where: { id },
       data: {
-        status: "WON",
+        status: "CASHED_OUT",
         cashoutMultiplier,
         cashoutedAt,
       },
     });
   }
 
-  async settle(roundId: string, status: "WON" | "LOST") {
+  async settle(roundId: string, status: "CASHED_OUT" | "LOST") {
     const pendingBets = await this.prisma.bet.findMany({
       where: { roundId, status: "PENDING" },
     });
@@ -74,10 +74,21 @@ export class BetRepository {
     return Promise.all(updatePromises);
   }
 
-  async updateStatus(id: string, status: "WON" | "LOST") {
+  async updateStatus(id: string, status: "CASHED_OUT" | "LOST") {
     return this.prisma.bet.update({
       where: { id },
       data: { status },
     });
+  }
+
+  async setLost(id: string) {
+    return this.prisma.bet.update({
+      where: { id },
+      data: { status: "LOST" },
+    });
+  }
+
+  async delete(id: string) {
+    return this.prisma.bet.delete({ where: { id } });
   }
 }

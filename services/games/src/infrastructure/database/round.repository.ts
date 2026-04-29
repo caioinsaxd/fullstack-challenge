@@ -29,13 +29,14 @@ export class RoundRepository {
     });
   }
 
-  async create(data: { id?: string; hash?: string; seed?: string }) {
+  async create(data: { id?: string; hash?: string; seed?: string; crashPoint?: string }) {
     return this.prisma.round.create({
       data: {
         id: data.id,
         status: "BETTING",
         hash: data.hash,
         seed: data.seed,
+        crashPoint: data.crashPoint,
       },
       include: { bets: true },
     });
@@ -53,10 +54,14 @@ export class RoundRepository {
     });
   }
 
-  async crash(id: string, crashedAt: Date) {
+  async crash(id: string, crashPoint: string, crashedAt: Date) {
     return this.prisma.round.update({
       where: { id },
-      data: { crashedAt },
+      data: { 
+        status: "ENDED",
+        crashPoint,
+        crashedAt,
+      },
       include: { bets: true },
     });
   }
