@@ -107,11 +107,13 @@ export function BetPanel() {
     const amountToBet = autoBetEnabled && autoBetAmount ? autoBetAmount : betAmount;
     if (amountToBet <= 0) return;
     
+    const amountInCents = Math.round(amountToBet * 100);
+    
     setIsPlacing(true);
     setError(null);
     
     try {
-      const bet = await placeBet(currentRound.id, amountToBet);
+      const bet = await placeBet(currentRound.id, amountInCents);
       addBet(bet);
       setPhase('betting');
       setPlacedAmount(bet.amount);
@@ -184,9 +186,9 @@ export function BetPanel() {
   const getButtonText = () => {
     if (isPlacing) return 'PLACING...';
     if (isCashingOut) return 'CASHING...';
-    if (phase === 'cashed') return `✅ CASHED! +${winAmount}¢`;
-    if (phase === 'lost') return `💥 CRASHED! -${placedAmount}¢`;
-    if (phase === 'betting' && isEnded) return `💥 CRASHED! -${placedAmount}¢`;
+    if (phase === 'cashed') return `✅ CASHED! +$${(winAmount / 100).toFixed(2)}`;
+    if (phase === 'lost') return `💥 CRASHED! -$${(placedAmount / 100).toFixed(2)}`;
+    if (phase === 'betting' && isEnded) return `💥 CRASHED! -$${(placedAmount / 100).toFixed(2)}`;
     if (phase === 'none') return 'NO BET';
     if (phase === 'betting' && isBetting) return 'CANCEL';
     if (phase === 'betting' && isRunning) return `CASH OUT @ ${multiplier.toFixed(2)}x`;
@@ -201,7 +203,7 @@ export function BetPanel() {
     return '#4b5563';
   };
 
-  const presetAmounts = [100, 200, 500, 1000, 2000];
+  const presetAmounts = [1, 2, 5, 10, 20]; // in dollars
 
   const isPlaceDisabled = !canPlace || isPlacing;
   const isCashoutDisabled = (phase !== 'betting') || isCashingOut;
@@ -237,14 +239,14 @@ export function BetPanel() {
                 opacity: canPlace ? 1 : 0.5,
               }}
             >
-              {amt}
+              ${amt}
             </button>
           ))}
         </div>
         <input 
           type="number" 
           value={betAmount} 
-          onChange={e => setBetAmount(Math.max(100, Number(e.target.value)))} 
+          onChange={e => setBetAmount(Math.max(1, Number(e.target.value)))} 
           disabled={!canPlace}
           style={{ 
             width: '100%', 
@@ -360,7 +362,8 @@ export function BetPanel() {
                 type="number" 
                 value={autoBetAmount || ''} 
                 onChange={e => setAutoBetAmount(e.target.value ? Number(e.target.value) : null)} 
-                placeholder="100"
+                placeholder="1"
+                min={1}
                 style={{ 
                   width: '3.5rem', 
                   padding: '0.25rem', 
@@ -370,7 +373,7 @@ export function BetPanel() {
                   borderRadius: '0.25rem',
                 }} 
               />
-              <span style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.1rem' }}>amount</span>
+              <span style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '0.1rem' }}>$</span>
             </div>
             <span style={{ color: '#64748b', fontSize: '0.7rem' }}>x</span>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

@@ -6,10 +6,12 @@ interface AuthState {
   userId: string | null;
   username: string | null;
   email: string | null;
+  balance: number; // in cents
   isAuthenticated: boolean;
   user: { username: string; email: string } | null;
   
   setAuth: (token: string, userId: string, username: string, email: string) => void;
+  setBalance: (balance: number) => void;
   logout: () => void;
 }
 
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthState>()(
       userId: null,
       username: null,
       email: null,
+      balance: 0,
       isAuthenticated: false,
       user: null,
       
@@ -32,11 +35,14 @@ export const useAuthStore = create<AuthState>()(
         user: { username, email },
       }),
       
+      setBalance: (balance) => set({ balance }),
+      
       logout: () => set({
         token: null,
         userId: null,
         username: null,
         email: null,
+        balance: 0,
         isAuthenticated: false,
         user: null,
       }),

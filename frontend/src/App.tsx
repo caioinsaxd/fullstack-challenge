@@ -8,7 +8,7 @@ import { SpaceBackground } from './components/SpaceBackground';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useGameStore } from './stores/gameStore';
 import { useAuthStore, getAuthorizationUrl, exchangeCodeForToken } from './stores/authStore';
-import { getRoundHistory, getCurrentRound, setAuthToken } from './services/api';
+import { getRoundHistory, getCurrentRound, setAuthToken, getWalletBalance } from './services/api';
 
 const queryClient = new QueryClient();
 
@@ -117,6 +117,14 @@ function CallbackPage() {
         const tokens = await exchangeCodeForToken(code);
         setAuth(tokens.token, tokens.userId, tokens.username, tokens.email);
         setAuthToken(tokens.token);
+        
+        // Fetch wallet balance
+        try {
+          const balance = await getWalletBalance();
+          useAuthStore.getState().setBalance(balance);
+        } catch (balanceErr) {
+          console.warn('Failed to fetch balance:', balanceErr);
+        }
         
         // Clear OAuth params and redirect to main page
         window.history.replaceState({}, '', '/');
@@ -269,6 +277,9 @@ function Game() {
                     {user.username?.charAt(0).toUpperCase()}
                   </div>
                   <span style={{ color: '#fff', fontWeight: 500 }}>{user.username}</span>
+                  <span style={{ color: '#10b981', fontWeight: 600, fontFamily: 'monospace' }}>
+                    ${(useAuthStore.getState().balance / 100).toFixed(2)}
+                  </span>
                 </div>
               )}
               <button

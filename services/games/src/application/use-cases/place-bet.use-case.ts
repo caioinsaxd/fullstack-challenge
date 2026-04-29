@@ -37,11 +37,22 @@ export class PlaceBetUseCase {
     }
   }
 
+  private readonly MIN_BET = 100;
+  private readonly MAX_BET = 100000;
+
   async execute(input: PlaceBetInput): Promise<PlaceBetOutput> {
     const round = await this.roundRepository.findCurrentRound();
     
     if (!round || round.status !== "BETTING") {
       throw new Error("Round is not accepting bets");
+    }
+
+    if (input.amount < this.MIN_BET) {
+      throw new Error(`Minimum bet is ${this.MIN_BET} cents`);
+    }
+
+    if (input.amount > this.MAX_BET) {
+      throw new Error(`Maximum bet is ${this.MAX_BET} cents`);
     }
 
     const balance = await this.checkWalletBalance(input.playerId);
