@@ -3,32 +3,6 @@ import { RoundRepository } from "../../infrastructure/database/round.repository"
 import { BetRepository } from "../../infrastructure/database/bet.repository";
 import { RabbitMQPublisher } from "../../infrastructure/messaging/rabbitmq.publisher";
 
-/**
- * WALLET DEDUCTION FLOW - CRITICAL BUSINESS LOGIC
- * 
- * This use case creates a bet but does NOT deduct from wallet yet.
- * The wallet deduction is deliberately deferred until the round actually starts.
- * 
- * Timeline:
- * 1. BETTING PHASE (0-15 seconds):
- *    - User clicks "Launch Mission" and calls placeBet()
- *    - Bet is created with status = PENDING
- *    - NO wallet deduction happens here
- *    - User can still cancel the bet (via cancelBet) without losing money
- * 
- * 2. ROUND STARTS (after 15 seconds):
- *    - GameScheduler.runRound() is called
- *    - publishBetsRunning() event is sent to wallet service
- *    - Wallet service receives bets.running event
- *    - ONLY NOW wallet is deducted for all active bets
- *    - This is the point of no return for the bet
- * 
- * 3. RUNNING PHASE:
- *    - User can cashout to receive winnings
- *    - Or user doesn't cashout and loses the bet if game crashes
- * 
- * SAFETY: This design prevents wallet deduction for cancelled bets
- */
 export interface PlaceBetInput {
   playerId: string;
   amount: number;
@@ -49,11 +23,30 @@ export class PlaceBetUseCase {
     private readonly publisher: RabbitMQPublisher,
   ) {}
 
+  private async checkWalletBalance(playerId: string): Promise<number> {
+    const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://localhost:4002";
+    try {
+      const response = await fetch(`${WALLET_URL}/wallets/me?playerId=${playerId}`);
+      if (!response.ok) {
+        return 0;
+      }
+      const data = await response.json();
+      return data.balance || 0;
+    } catch {
+      return 0;
+    }
+  }
+
   async execute(input: PlaceBetInput): Promise<PlaceBetOutput> {
     const round = await this.roundRepository.findCurrentRound();
     
     if (!round || round.status !== "BETTING") {
       throw new Error("Round is not accepting bets");
+    }
+
+    const balance = await this.checkWalletBalance(input.playerId);
+    if (balance < input.amount) {
+      throw new Error(`Insufficient balance: you have ${balance}, need ${input.amount}`);
     }
 
     const existingBet = await this.betRepository.findByPlayerAndRound(
@@ -70,9 +63,6 @@ export class PlaceBetUseCase {
       playerId: input.playerId,
       amount: input.amount,
     });
-
-    console.log(`[PlaceBet] Bet created (NO WALLET DEDUCTION YET) - Player: ${input.playerId}, Amount: ${input.amount}, Round: ${round.id}, Bet ID: ${bet.id}`);
-    console.log(`[PlaceBet] Wallet will be deducted when round starts (15 seconds). User can still cancel until then.`);
 
     await this.publisher.publishBetPlaced({
       type: "bet.placed",

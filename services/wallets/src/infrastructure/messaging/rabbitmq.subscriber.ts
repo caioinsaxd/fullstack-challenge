@@ -129,7 +129,7 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
 
     if (wallet.balance < amount) {
       console.error(`Insufficient balance for player: ${playerId} (balance: ${wallet.balance}, bet: ${amount})`);
-      return;
+      throw new Error(`Insufficient balance: have ${wallet.balance}, need ${amount}`);
     }
 
     await this.prisma.wallet.update({
@@ -150,12 +150,12 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
       
       if (!wallet) {
         console.error(`[Wallet:BetsRunning] ERROR - Wallet not found for player ${playerId}. Cannot deduct ${amount}.`);
-        continue;
+        throw new Error(`Wallet not found for player ${playerId}`);
       }
       
       if (wallet.balance < amount) {
         console.error(`[Wallet:BetsRunning] ERROR - Insufficient balance for player ${playerId}: ${wallet.balance} < ${amount}. Cannot deduct.`);
-        continue;
+        throw new Error(`Insufficient balance: have ${wallet.balance}, need ${amount}`);
       }
       
       const previousBalance = wallet.balance;
