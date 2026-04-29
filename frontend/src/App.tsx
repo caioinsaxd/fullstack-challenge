@@ -383,13 +383,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check if we're on callback page
     if (window.location.pathname === '/callback') {
       setIsLoading(false);
       return;
     }
     
-    // If we have a token, set it in the API
     if (token) {
       setAuthToken(token);
     }
@@ -414,7 +412,6 @@ function App() {
     );
   }
   
-  // Handle callback page
   if (window.location.pathname === '/callback') {
     return (
       <QueryClientProvider client={queryClient}>
@@ -423,7 +420,6 @@ function App() {
     );
   }
   
-  // Show login if not authenticated
   if (!isAuthenticated) {
     return (
       <QueryClientProvider client={queryClient}>

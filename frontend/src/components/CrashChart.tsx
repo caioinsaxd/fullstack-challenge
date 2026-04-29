@@ -481,13 +481,11 @@ const zone = getMultiplierZone();
         const posX = crashState ? crashState.rocketX : rocketX;
         const posY = crashState ? crashState.rocketY : rocketY;
         
-        // Draw rocket from PNG image
         if (rocketRef.current) {
           const rocketWidth = 50;
           const rocketHeight = 50;
           ctx.save();
           ctx.translate(posX, posY);
-          // Minimal rotation to the right
           ctx.rotate(Math.PI / 20);
           ctx.drawImage(rocketRef.current, -rocketWidth/2, -rocketHeight/2, rocketWidth, rocketHeight);
           ctx.restore();
@@ -510,14 +508,12 @@ const zone = getMultiplierZone();
   }, [crashPoint, currentRound, multiplier, dimensions, crashState, showExplosion, showCrashedLine]);
 
   const getStatusBadge = () => {
-    // After crash - show CRASHED briefly then transition to PLACE BETS
     if (showExplosion || showCrashedLine) {
       return { text: 'CRASHED', class: 'ended' };
     }
     
     const status = currentRound?.status;
     
-    // Map API statuses to display
     const statusMap: Record<string, { text: string; class: string }> = {
       BETTING: { text: 'PLACE BETS', class: 'betting' },
       RUNNING: { text: 'FLYING', class: 'running' },
@@ -525,8 +521,7 @@ const zone = getMultiplierZone();
       SETTLED: { text: 'CRASHED', class: 'ended' },
     };
     
-    // Default to PLACE BETS if no round or unknown status
-    // This ensures we always show a meaningful status
+  
     if (!status || status === 'BETTING') {
       return { text: 'PLACE BETS', class: 'betting' };
     }
@@ -536,7 +531,6 @@ const zone = getMultiplierZone();
 
   const statusConfig = getStatusBadge();
 
-// Timer: synced with round timing - shows 10s countdown during BETTING phase
   const [countdown, setCountdown] = useState<number>(10);
   const [showTimer, setShowTimer] = useState(false);
   const [showBetsOff, setShowBetsOff] = useState(false);
@@ -548,18 +542,16 @@ const zone = getMultiplierZone();
       const status = round?.status;
       const bettingEndsAt = store.bettingEndsAt;
       
-      // Only show timer during BETTING phase
       if (status === 'BETTING' && bettingEndsAt) {
         const now = Date.now();
         const remaining = Math.max(0, Math.ceil((bettingEndsAt - now) / 1000));
         
         if (remaining > 0 && remaining <= 10) {
-          // Show countdown 10 to 1
           setCountdown(remaining);
           setShowTimer(true);
           setShowBetsOff(false);
         } else if (remaining === 0) {
-          // Show "BETS ARE OFF" for 5 seconds (15s total betting - 10s visual timer)
+          // "BETS ARE OFF"
           setShowTimer(false);
           setShowBetsOff(true);
           
@@ -594,7 +586,6 @@ const zone = getMultiplierZone();
           {statusConfig.text}
         </div>
       </div>
-      {/* Centered countdown timer */}
       {showTimer && (
         <div style={{
           position: 'absolute',
@@ -612,7 +603,6 @@ const zone = getMultiplierZone();
         </div>
       )}
       
-      {/* BETS ARE OFF message */}
       {showBetsOff && (
         <div style={{
           position: 'absolute',

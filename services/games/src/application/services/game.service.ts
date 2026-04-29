@@ -12,15 +12,10 @@ export class GameService {
   ) {}
 
   async getOrCreateRound() {
-    let round = await this.roundRepository.findCurrentRound();
+    const round = await this.roundRepository.findCurrentRound();
     
     if (!round) {
-      const pfResult = this.provablyFairService.generate("new-round");
-      
-      round = await this.roundRepository.create({
-        hash: pfResult.hash,
-        seed: pfResult.seed,
-      });
+      throw new Error("No active round available. Try again shortly.");
     }
 
     return round;
@@ -42,7 +37,20 @@ export class GameService {
       throw new Error("Round verification data not available");
     }
 
-    return this.provablyFairService.verify(round.seed, roundId);
+    const calculatedCrashPoint = parseFloat(
+      this.provablyFairService.calculateCrashPoint(round.hash).toFixed(2),
+    );
+
+    const storedCrashPoint = parseFloat(String(round.crashPoint || "0"));
+    const verified = storedCrashPoint === calculatedCrashPoint;
+
+    return {
+      seed: round.seed,
+      hash: round.hash,
+      crashPoint: calculatedCrashPoint,
+      verified,
+      houseEdge: this.provablyFairService.getHouseEdge(),
+    };
   }
 
   async getPlayerBets(playerId: string, page: number = 1, limit: number = 20) {

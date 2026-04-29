@@ -53,7 +53,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Keycloak configuration
 const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/realms/crash-game';
 const CLIENT_ID = 'crash-game-client';
 const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || 'http://localhost:5173';
@@ -82,7 +81,6 @@ export async function getAuthorizationUrl(): Promise<string> {
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
   
-  // Store verifier for later
   localStorage.setItem('oauth_code_verifier', codeVerifier);
   localStorage.setItem('oauth_state', state);
   
@@ -122,7 +120,6 @@ export async function exchangeCodeForToken(code: string): Promise<{ token: strin
   
   const data = await response.json();
   
-  // Decode JWT to get user info
   const payload = JSON.parse(atob(data.access_token.split('.')[1]));
   
   return {
@@ -138,6 +135,5 @@ export function logout() {
   localStorage.removeItem('oauth_code_verifier');
   localStorage.removeItem('oauth_state');
   
-  // Redirect to Keycloak logout
   window.location.href = `${KEYCLOAK_URL}/protocol/openid-connect/logout?redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 }

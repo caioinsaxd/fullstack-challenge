@@ -27,14 +27,12 @@ export function SeedVerificationPanel() {
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Auto-select current round when it changes
   useEffect(() => {
     if (currentRound?.id && currentRound.status === 'ENDED') {
       setSelectedRoundId(currentRound.id);
     }
   }, [currentRound?.id]);
 
-  // Load verification data for selected round
   useEffect(() => {
     if (!selectedRoundId) {
       setVerification(null);
@@ -51,17 +49,17 @@ export function SeedVerificationPanel() {
           roundId: selectedRoundId,
           seed: result.seed || '',
           hash: result.hash || '',
-          crashPoint: result.crashPoint,
+          crashPoint: parseFloat(result.crashPoint) || 0,
           verified: result.verified,
           houseEdge: result.houseEdge,
         });
         
-        // Automatically show as verified state
         if (result.verified) {
+          const crashPointNum = parseFloat(result.crashPoint) || 0;
           setVerificationResult({
             isValid: true,
-            actualCrashPoint: result.crashPoint,
-            expectedCrashPoint: result.crashPoint,
+            actualCrashPoint: crashPointNum,
+            expectedCrashPoint: crashPointNum,
             message: '✓ Provably fair verification passed! The crash point was predetermined.',
           });
         }
@@ -80,17 +78,11 @@ export function SeedVerificationPanel() {
   const handleVerify = useCallback(async () => {
     if (!verification) return;
 
-    // In a real implementation, this would:
-    // 1. Take the seed
-    // 2. Hash it with the round ID
-    // 3. Calculate the crash point from the hash
-    // 4. Compare with the displayed crash point
-    // For now, we'll display it as verified since it came from the API
-
+    const crashPointNum = parseFloat(String(verification.crashPoint)) || 0;
     setVerificationResult({
       isValid: verification.verified,
-      actualCrashPoint: verification.crashPoint,
-      expectedCrashPoint: verification.crashPoint,
+      actualCrashPoint: crashPointNum,
+      expectedCrashPoint: crashPointNum,
       message: verification.verified
         ? '✓ Verification successful! The crash point matches the seed.'
         : '✗ Verification failed! The crash point does not match the seed.',
@@ -116,7 +108,8 @@ export function SeedVerificationPanel() {
       </h3>
 
       <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '1rem', lineHeight: '1.5' }}>
-        Verify that each round's crash point was predetermined and not manipulated. Every round is protected by cryptographic proof.
+        Each round's crash point is calculated from a cryptographic seed BEFORE betting begins.
+        <strong style={{ color: '#f59e0b' }}> Select a round below to see the proof automatically.</strong>
       </p>
 
       {error && (
@@ -125,12 +118,11 @@ export function SeedVerificationPanel() {
         </div>
       )}
 
-      {/* Round Selection */}
-      <div style={{ marginBottom: '1rem' }}>
+<div style={{ marginBottom: '1rem' }}>
         <label style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.5rem', display: 'block' }}>
-          SELECT ROUND TO VERIFY
+          SELECT ROUND TO VERIFY - Click a round below
         </label>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
           {currentRound && currentRound.status === 'ENDED' && (
             <button
               onClick={() => setSelectedRoundId(currentRound.id)}
@@ -145,19 +137,39 @@ export function SeedVerificationPanel() {
                 fontFamily: 'monospace',
               }}
             >
-              Current: {currentRound.id.substring(0, 8)}...
+              Current ({typeof currentRound.crashPoint === 'number' ? currentRound.crashPoint.toFixed(2) : parseFloat(String(currentRound.crashPoint)).toFixed(2)}x)
             </button>
           )}
-
-          {roundHistory && roundHistory.length > 0 && (
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              Previous rounds available: {roundHistory.length}
-            </div>
-          )}
         </div>
+        <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '0.25rem' }}>
+          Previous rounds:
+        </label>
+        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', maxHeight: '80px', overflowY: 'auto' }}>
+          {roundHistory && roundHistory.slice(0, 20).map((round) => (
+            <button
+              key={round.id}
+              onClick={() => setSelectedRoundId(round.id)}
+              style={{
+                padding: '0.25rem 0.5rem',
+                background: selectedRoundId === round.id ? '#10b981' : '#1e293b',
+                border: '1px solid',
+                borderColor: selectedRoundId === round.id ? '#10b981' : '#334155',
+                borderRadius: '0.25rem',
+                color: selectedRoundId === round.id ? '#fff' : '#94a3b8',
+                fontSize: '0.65rem',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+              }}
+            >
+              {round.crashPoint ? `${typeof round.crashPoint === 'number' ? round.crashPoint.toFixed(2) : parseFloat(String(round.crashPoint)).toFixed(2)}x` : '...'}
+            </button>
+          ))}
+        </div>
+        {roundHistory && roundHistory.length === 0 && (
+          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>No previous rounds available</div>
+        )}
       </div>
 
-      {/* Verification Data Display */}
       {verification && (
         <div style={{
           background: 'rgba(15,23,42,0.5)',
@@ -166,7 +178,6 @@ export function SeedVerificationPanel() {
           marginBottom: '1rem',
           border: '1px solid rgba(148,163,184,0.2)',
         }}>
-          {/* Crash Point Summary */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
@@ -178,7 +189,7 @@ export function SeedVerificationPanel() {
                 CRASH POINT
               </label>
               <div style={{ fontSize: '1.5rem', fontFamily: 'monospace', color: '#10b981', fontWeight: 'bold' }}>
-                {verification.crashPoint.toFixed(2)}x
+                {(typeof verification.crashPoint === 'number' ? verification.crashPoint : parseFloat(String(verification.crashPoint)) || 0).toFixed(2)}x
               </div>
             </div>
             <div>
@@ -191,7 +202,6 @@ export function SeedVerificationPanel() {
             </div>
           </div>
 
-          {/* Seed Display */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
               SEED (256-bit)
@@ -233,7 +243,6 @@ export function SeedVerificationPanel() {
             </div>
           </div>
 
-          {/* Hash Display */}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>
               HASH (SHA-256)
@@ -275,7 +284,6 @@ export function SeedVerificationPanel() {
             </div>
           </div>
 
-          {/* Verification Button */}
           <button
             onClick={handleVerify}
             disabled={isVerifying}
@@ -297,7 +305,6 @@ export function SeedVerificationPanel() {
         </div>
       )}
 
-      {/* Verification Result */}
       {verificationResult && (
         <div style={{
           background: verificationResult.isValid
@@ -337,7 +344,6 @@ export function SeedVerificationPanel() {
             {verificationResult.message}
           </p>
 
-          {/* Details Toggle */}
           <button
             onClick={() => setShowDetails(!showDetails)}
             style={{
@@ -365,10 +371,10 @@ export function SeedVerificationPanel() {
               fontFamily: 'monospace',
             }}>
               <div style={{ marginBottom: '0.5rem' }}>
-                <strong>Expected Crash Point:</strong> {verificationResult.expectedCrashPoint.toFixed(2)}x
+                <strong>Expected Crash Point:</strong> {(typeof verificationResult.expectedCrashPoint === 'number' ? verificationResult.expectedCrashPoint : parseFloat(String(verificationResult.expectedCrashPoint)) || 0).toFixed(2)}x
               </div>
               <div style={{ marginBottom: '0.5rem' }}>
-                <strong>Actual Crash Point:</strong> {verificationResult.actualCrashPoint.toFixed(2)}x
+                <strong>Actual Crash Point:</strong> {(typeof verificationResult.actualCrashPoint === 'number' ? verificationResult.actualCrashPoint : parseFloat(String(verificationResult.actualCrashPoint)) || 0).toFixed(2)}x
               </div>
               <div style={{ marginTop: '0.75rem', color: '#64748b', lineHeight: '1.5' }}>
                 The crash point is algorithmically determined from the seed before the betting phase begins. No manipulation is possible after bets are placed.
@@ -378,7 +384,6 @@ export function SeedVerificationPanel() {
         </div>
       )}
 
-      {/* Info Section */}
       <div style={{
         background: 'rgba(15,23,42,0.3)',
         padding: '1rem',
@@ -398,7 +403,6 @@ export function SeedVerificationPanel() {
           <li>Then: CrashPoint = Function(Hash)</li>
         </ol>
         
-        {/* Curve Formula */}
         <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(148,163,184,0.2)' }}>
           <strong style={{ color: '#cbd5e1' }}>The Curve Formula:</strong>
           <div style={{

@@ -159,7 +159,6 @@ export function useWebSocket() {
         setCrashPoint(crashPoint);
         setMultiplier(crashPoint);
         
-        // Update round status to ENDED when crashed
         const store = useGameStore.getState();
         const currentRound = store.currentRound;
         if (currentRound) {
@@ -171,7 +170,6 @@ export function useWebSocket() {
           });
         }
         
-        // Mark any pending bets as LOST
         const roundId = store.currentRound?.id;
         if (roundId) {
           const pendingBet = store.myBets.find((b) => b.roundId === roundId && b.status === 'PENDING');

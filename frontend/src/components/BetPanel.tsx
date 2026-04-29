@@ -63,7 +63,6 @@ export function BetPanel() {
     }
   }, [roundId, JSON.stringify(myBets), isBetting]);
 
-  // Detect crash
   useEffect(() => {
     if (isEnded && phase === 'betting' && placedAmount > 0) {
       const existing = myBets.find(b => b.roundId === roundId);
@@ -73,7 +72,6 @@ export function BetPanel() {
     }
   }, [isEnded, phase, placedAmount, roundId, JSON.stringify(myBets)]);
 
-  // Reset when new betting round starts
   useEffect(() => {
     if (isBetting && phase !== 'none' && phase !== 'betting') {
       setPhase('none');
@@ -83,7 +81,6 @@ export function BetPanel() {
     }
   }, [roundId]);
 
-// Auto-bet: place bet when rounds remaining and in betting phase
   useEffect(() => {
     if (!currentRound?.id || !isBetting || phase !== 'none') return;
     if (autoBetEnabled && autoBetAmount && roundsRemaining > 0) {
@@ -91,7 +88,6 @@ export function BetPanel() {
     }
   }, [currentRound?.id, isBetting, roundsRemaining, autoBetEnabled, autoBetAmount]);
 
-  // Decrement rounds after round ends
   useEffect(() => {
     if (isEnded && (phase === 'cashed' || phase === 'lost')) {
       const newRounds = Math.max(0, roundsRemaining - 1);

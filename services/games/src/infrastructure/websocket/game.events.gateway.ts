@@ -56,7 +56,6 @@ export class GameEventsGateway
   }
 
   emitMultiplierUpdate(roundId: string, multiplier: string) {
-    // Emit globally so ALL clients receive the update (not just room subscribers)
     this.server.emit("multiplier:update", { roundId, multiplier });
   }
 

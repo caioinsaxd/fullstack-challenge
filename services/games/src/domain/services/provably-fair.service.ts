@@ -64,6 +64,10 @@ export class ProvablyFairService {
     };
   }
 
+  getHouseEdge(): number {
+    return HOUSE_EDGE * 100;
+  }
+
   verifyCrashPoint(seed: string, roundId: string, expectedCrashPoint: string): boolean {
     const result = this.verify(seed, roundId);
     return result.crashPoint === expectedCrashPoint;

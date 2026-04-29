@@ -17,7 +17,6 @@ interface Star {
   delay: number;
 }
 
-// Original positions preserved
 const spaceItems: SpaceItem[] = [
   { id: 1, type: 'planet', x: 15, y: 70, size: 120, floatClass: 'float-1' },
   { id: 2, type: 'planet2', x: 75, y: 20, size: 80, floatClass: 'float-2' },
@@ -26,7 +25,6 @@ const spaceItems: SpaceItem[] = [
   { id: 5, type: 'ufo', x: 85, y: 60, size: 50, floatClass: '' },
   { id: 6, type: 'planet2', x: 5, y: 50, size: 50, floatClass: 'float-2' },
   
-  // Additional items - NEW
   { id: 7, type: 'saturn', x: 55, y: 85, size: 55, floatClass: 'float-2' },
   { id: 8, type: 'comet', x: 35, y: 85, size: 30, floatClass: 'float-1' },
   { id: 9, type: 'planet', x: 45, y: 10, size: 35, floatClass: 'float-3' },

@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/common";
+import { randomUUID } from "crypto";
 import { RoundRepository } from "../../infrastructure/database/round.repository";
 import { BetRepository } from "../../infrastructure/database/bet.repository";
 import { ProvablyFairService } from "../../domain/services/provably-fair.service";
@@ -53,9 +54,15 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
       let currentRound = await this.roundRepository.findCurrentRound();
 
       if (!currentRound) {
-        const pfResult = this.provablyFairService.generate(`round-${Date.now()}`);
+        // Generate a deterministic roundId using UUID format
+        // Use the same roundId for hash generation to ensure verification consistency
+        const roundId = randomUUID();
+        
+        // Generate seed and hash using the actual roundId that will be stored
+        const pfResult = this.provablyFairService.generate(roundId);
+        
         currentRound = await this.roundRepository.create({
-          id: pfResult.hash.substring(0, 16),
+          id: roundId,
           hash: pfResult.hash,
           seed: pfResult.seed,
           crashPoint: pfResult.crashPoint,
@@ -64,7 +71,7 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
       }
 
       if (currentRound.status === "BETTING" && !this.gameLoop?.isRunning) {
-        const crashPoint = parseFloat(currentRound.crashPoint || "1.00");
+        const crashPoint = parseFloat(String(currentRound.crashPoint || "1.00"));
         
         if (crashPoint < 1.01) {
           this.logger.warn(`Invalid crash point ${crashPoint}, treating as 1.01`);
@@ -84,7 +91,7 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
       } else if (currentRound.status === "RUNNING" && !this.gameLoop?.isRunning) {
         this.logger.log(`Resuming interrupted round: ${currentRound.id}`);
         
-        const crashPoint = parseFloat(currentRound.crashPoint || "1.01");
+        const crashPoint = parseFloat(String(currentRound.crashPoint || "1.01"));
         const startedAt = currentRound.startedAt ? new Date(currentRound.startedAt).getTime() : Date.now();
         
         this.gameLoop = {
@@ -122,8 +129,7 @@ export class GameScheduler implements OnModuleInit, OnModuleDestroy {
 
       this.gameLoop.isRunning = true;
 
-      // Publish bets.running event - this triggers wallet deduction in the wallet service
-      // IMPORTANT: Wallet deduction happens NOW, not when the bet was placed
+  
       const allBets = await this.betRepository.findByRoundId(this.gameLoop.roundId);
       if (allBets.length > 0) {
         const totalAmount = allBets.reduce((sum, b) => sum + Number(b.amount), 0);
