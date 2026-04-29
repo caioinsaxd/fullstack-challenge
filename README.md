@@ -28,6 +28,18 @@ cp frontend/.env.example frontend/.env
 bun run docker:up
 ```
 
+## 🔐 Variáveis de Ambiente
+
+O frontend utiliza as seguintes variáveis de ambiente (arquivo `.env`):
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `VITE_API_URL` | URL do API Gateway (Kong) para acessar os serviços backend | `http://localhost:8000` |
+| `VITE_WS_URL` | URL do WebSocket para atualizações em tempo real do jogo | `ws://localhost:4001` |
+| `VITE_REDIRECT_URI` | URI de redirecionamento para o fluxo de autenticação OAuth2/OIDC com Keycloak | `http://localhost:3000` |
+
+> **Importante**: A `VITE_REDIRECT_URI` deve corresponder exatamente à URL configurada no cliente Keycloak. Quando executando em portas diferentes, atualize este valor conforme necessário.
+
 ## 🌐 Acesso Após Inicialização
 
 - **Frontend**: http://localhost:3000
