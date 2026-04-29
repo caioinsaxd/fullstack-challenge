@@ -37,6 +37,21 @@ export interface RoundSettledEvent extends GameEvent {
   };
 }
 
+export interface RoundStartedEvent extends GameEvent {
+  type: "round.started";
+  payload: {
+    roundId: string;
+  };
+}
+
+export interface BetsRunningEvent extends GameEvent {
+  type: "bets.running";
+  payload: {
+    roundId: string;
+    bets: Array<{ playerId: string; betId: string; amount: number }>;
+  };
+}
+
 @Injectable()
 export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
   private connection: ReturnType<typeof import("amqplib").connect> | null = null;
@@ -85,6 +100,14 @@ export class RabbitMQPublisher implements OnModuleInit, OnModuleDestroy {
 
   async publishRoundSettled(event: RoundSettledEvent): Promise<boolean> {
     return this.publish("round.settled", event);
+  }
+
+  async publishRoundStarted(event: RoundStartedEvent): Promise<boolean> {
+    return this.publish("round.started", event);
+  }
+
+  async publishBetsRunning(event: BetsRunningEvent): Promise<boolean> {
+    return this.publish("bets.running", event);
   }
 
   private async publish(routingKey: string, event: GameEvent): Promise<boolean> {

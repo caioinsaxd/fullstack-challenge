@@ -16,6 +16,11 @@ interface BetCashedOutPayload {
   multiplier: string;
 }
 
+interface BetsRunningPayload {
+  roundId: string;
+  bets: Array<{ playerId: string; betId: string; amount: number }>;
+}
+
 interface RoundSettledPayload {
   roundId: string;
   crashPoint: string;
@@ -49,7 +54,11 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
       
       await this.channel.assertExchange("game_events", "topic", { durable: true });
       await this.channel.assertQueue("wallet_events", { durable: true });
-      await this.channel.bindQueue("wallet_events", "game_events", "bet.*");
+      // Important: Only bind to events that will trigger wallet operations
+      // Wallet deduction happens when round starts (bets.running)
+      // Wallet credit happens when bet is cashed out or round is settled
+      await this.channel.bindQueue("wallet_events", "game_events", "bets.running");
+      await this.channel.bindQueue("wallet_events", "game_events", "bet.cashed_out");
       await this.channel.bindQueue("wallet_events", "game_events", "round.settled");
       
       console.log("RabbitMQ subscriber connected");
@@ -80,15 +89,20 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
         const event = JSON.parse(msg.content.toString());
         
         switch (event.type) {
-          case "bet.placed":
-            await this.handleBetPlaced(event.payload as BetPlacedPayload);
+          case "bets.running":
+            console.log(`[Wallet] Processing bets.running event for round ${event.payload.roundId}`);
+            await this.handleBetsRunning(event.payload as BetsRunningPayload);
             break;
           case "bet.cashed_out":
+            console.log(`[Wallet] Processing bet.cashed_out event for player ${event.payload.playerId}`);
             await this.handleBetCashedOut(event.payload as BetCashedOutPayload);
             break;
           case "round.settled":
+            console.log(`[Wallet] Processing round.settled event for round ${event.payload.roundId}`);
             await this.handleRoundSettled(event.payload as RoundSettledPayload);
             break;
+          default:
+            console.log(`[Wallet] Ignoring unknown event type: ${event.type}`);
         }
 
         this.channel.ack(msg);
@@ -102,17 +116,19 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
   private async handleBetPlaced(payload: BetPlacedPayload): Promise<void> {
     const { playerId, amount } = payload;
 
-    const wallet = await this.prisma.wallet.findUnique({
+    let wallet = await this.prisma.wallet.findUnique({
       where: { playerId },
     });
 
     if (!wallet) {
-      console.error(`Wallet not found for player: ${playerId}`);
-      return;
+      wallet = await this.prisma.wallet.create({
+        data: { playerId, balance: 0 },
+      });
+      console.log(`Created new wallet with 0 balance for player: ${playerId}`);
     }
 
     if (wallet.balance < amount) {
-      console.error(`Insufficient balance for player: ${playerId}`);
+      console.error(`Insufficient balance for player: ${playerId} (balance: ${wallet.balance}, bet: ${amount})`);
       return;
     }
 
@@ -122,6 +138,33 @@ export class RabbitMQSubscriber implements OnModuleInit, OnModuleDestroy {
     });
 
     console.log(`Deducted ${amount} from player ${playerId}`);
+  }
+
+  private async handleBetsRunning(payload: BetsRunningPayload): Promise<void> {
+    const { roundId, bets } = payload;
+    console.log(`[Wallet:BetsRunning] WALLET DEDUCTION TRIGGERED - Round ${roundId} started. Deducting wallet for ${bets.length} bets`);
+    
+    for (const bet of bets) {
+      const { playerId, amount } = bet;
+      let wallet = await this.prisma.wallet.findUnique({ where: { playerId } });
+      
+      if (!wallet) {
+        console.error(`[Wallet:BetsRunning] ERROR - Wallet not found for player ${playerId}. Cannot deduct ${amount}.`);
+        continue;
+      }
+      
+      if (wallet.balance < amount) {
+        console.error(`[Wallet:BetsRunning] ERROR - Insufficient balance for player ${playerId}: ${wallet.balance} < ${amount}. Cannot deduct.`);
+        continue;
+      }
+      
+      const previousBalance = wallet.balance;
+      await this.prisma.wallet.update({
+        where: { playerId },
+        data: { balance: wallet.balance - amount },
+      });
+      console.log(`[Wallet:BetsRunning] SUCCESS - Deducted ${amount} from player ${playerId} for round ${roundId} (${previousBalance} -> ${previousBalance - amount})`);
+    }
   }
 
   private async handleBetCashedOut(payload: BetCashedOutPayload): Promise<void> {
