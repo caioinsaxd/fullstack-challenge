@@ -24,17 +24,36 @@ constructor(
   ) {}
 
   private async checkWalletBalance(playerId: string): Promise<number> {
-    const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://localhost:4002";
+    const WALLET_URL = process.env.WALLET_SERVICE_URL || "http://wallets:4002";
     const url = `${WALLET_URL}/me?playerId=${playerId}`;
-    console.log(`[PlaceBet] Checking balance at: ${url}`);
+    console.log(`[PlaceBet] Checking balance at: ${url} for playerId: ${playerId}`);
     try {
       const response = await fetch(url);
       console.log(`[PlaceBet] Wallet response status: ${response.status}`);
       if (!response.ok) {
+        console.log(`[PlaceBet] Wallet response not OK: ${response.statusText}`);
         return 0;
       }
       const data = await response.json();
       console.log(`[PlaceBet] Wallet data: ${JSON.stringify(data)}`);
+      if (data.balance === undefined || data.balance === null) {
+        console.log(`[PlaceBet] No balance in response, creating wallet...`);
+        try {
+          const createResp = await fetch(`${WALLET_URL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerId })
+          });
+          if (createResp.ok) {
+            const newWallet = await createResp.json();
+            console.log(`[PlaceBet] Created wallet: ${JSON.stringify(newWallet)}`);
+            return Number(newWallet.balance) || 0;
+          }
+        } catch (e2) {
+          console.log(`[PlaceBet] Failed to create wallet: ${e2.message}`);
+        }
+        return 0;
+      }
       return Number(data.balance) || 0;
     } catch (e) {
       console.log(`[PlaceBet] Wallet error: ${e.message}`);
