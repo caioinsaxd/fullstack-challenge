@@ -15,6 +15,7 @@ export function useWebSocket() {
     setCurrentRound,
     setCrashPoint,
     setMultiplier,
+    multiplier,
     addBet,
     updateBet,
     soundEnabled,

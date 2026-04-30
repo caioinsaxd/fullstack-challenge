@@ -52,6 +52,7 @@ export function CrashChart() {
   const elementsRef = useRef<BackgroundElement[]>([]);
   const movementLinesRef = useRef<{ x: number; y: number; length: number; speed: number; opacity: number }[]>([]);
   const currentZoneRef = useRef<string>('clouds');
+  const smoothMultiplierRef = useRef<number>(1.0);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -107,7 +108,9 @@ export function CrashChart() {
       const crashProgress = (crashPoint - 1) / (maxMultiplier - 1);
       const crashX = crashProgress * dimensions.width * 0.9 + dimensions.width * 0.05;
       const baseY = dimensions.height - 30;
-      const crashY = baseY - crashProgress * (dimensions.height - 60);
+
+      const crashParabolaT = crashProgress * crashProgress;
+      const crashY = baseY - crashParabolaT * (dimensions.height - 60);
       
       setCrashState({
         crashed: true,
@@ -359,13 +362,37 @@ const zone = getMultiplierZone();
       const isRunning = currentRound?.status === 'RUNNING';
       const baseY = dimensions.height - 30;
       const maxMultiplier = 20.0;
+      //calculo de parabolazinha
 
-      const currentProgress = crashState
-        ? (crashState.crashMultiplier - 1) / (maxMultiplier - 1)
-        : Math.min((multiplier - 1) / (maxMultiplier - 1), 0.9);
+      const targetMultiplier = crashState ? crashState.crashMultiplier : multiplier;
+      const smoothSpeed = 0.08;
+      smoothMultiplierRef.current += (targetMultiplier - smoothMultiplierRef.current) * smoothSpeed;
+
+      const getCurrentProgress = (mult: number) => {
+        return Math.min(Math.max(mult - 1, 0) / (maxMultiplier - 1), 1);
+      };
+
       
+      const applyParabola = (t: number): number => {
+        return 2 * t - t * t; 
+      };
+      
+      const currentProgress = crashState
+        ? getCurrentProgress(crashState.crashMultiplier)
+        : getCurrentProgress(smoothMultiplierRef.current);
+
+      const parabolaT = applyParabola(currentProgress);
+
       const rocketX = currentProgress * dimensions.width * 0.9 + dimensions.width * 0.05;
-      const rocketY = baseY - currentProgress * (dimensions.height - 60);
+      const rocketY = baseY - parabolaT * (dimensions.height - 60);
+
+      if (crashState) {
+        const crashProgress = getCurrentProgress(crashState.crashMultiplier);
+        crashState.rocketX = crashProgress * dimensions.width * 0.9 + dimensions.width * 0.05;
+        const crashParabolaT = applyParabola(crashProgress);
+        crashState.rocketY = baseY - crashParabolaT * (dimensions.height - 60);
+      }
+
       
       const [_rocketHeight, _rocketWidth] = [60, 50];
 
@@ -404,56 +431,56 @@ const zone = getMultiplierZone();
         });
       }
 
+      const drawSmoothCurve = (progress: number, isRunning: boolean) => {
+        const segments = 300;
+
+        const pathPoints: { x: number; y: number }[] = [];
+        for (let i = 0; i <= segments; i++) {
+          const t = (i / segments) * progress;
+          const parabolaT = 2 * t - t * t;
+
+          const x = t * dimensions.width * 0.9 + dimensions.width * 0.05;
+
+          const y = baseY - parabolaT * (dimensions.height - 60);
+
+          pathPoints.push({ x, y });
+        }
+
+        ctx.save();
+        ctx.strokeStyle = isRunning ? '#10b981' : '#ef4444';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+
+        ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+        for (let i = 1; i < pathPoints.length; i++) {
+          ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      };
+
       if (isRunning) {
-        ctx.strokeStyle = '#10b981';
-        ctx.shadowColor = '#10b981';
-        ctx.shadowBlur = 15;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        
-        const segments = 50;
-        for (let i = 0; i <= segments; i++) {
-          const segProgress = (i / segments) * currentProgress;
-          const x = segProgress * dimensions.width * 0.9 + dimensions.width * 0.05;
-          const y = baseY - segProgress * (dimensions.height - 60);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        drawSmoothCurve(currentProgress, true);
       } else if (showCrashedLine && crashState) {
-        ctx.strokeStyle = '#ef4444';
-        ctx.shadowColor = '#ef4444';
-        ctx.shadowBlur = 15;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        
-        const segments = 50;
         const crashProgress = (crashState.crashMultiplier - 1) / (maxMultiplier - 1);
-        for (let i = 0; i <= segments; i++) {
-          const segProgress = (i / segments) * crashProgress;
-          const x = segProgress * dimensions.width * 0.9 + dimensions.width * 0.05;
-          const y = baseY - segProgress * (dimensions.height - 60);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        drawSmoothCurve(crashProgress, false);
         
+        ctx.save();
         ctx.strokeStyle = '#ef4444';
+        ctx.shadowColor = 'rgba(239, 68, 68, 0.5)';
+        ctx.shadowBlur = 8;
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 8]);
+        ctx.globalAlpha = 0.6;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(0, baseY);
         ctx.lineTo(dimensions.width, baseY);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
       }
 
       if (showExplosion && crashState) {
@@ -477,16 +504,16 @@ const zone = getMultiplierZone();
         ctx.fill();
         
         ctx.globalAlpha = 1;
-      } else if (isRunning || (showCrashedLine && crashState)) {
+      } else       if (isRunning || (showCrashedLine && crashState)) {
         const posX = crashState ? crashState.rocketX : rocketX;
         const posY = crashState ? crashState.rocketY : rocketY;
-        
+
         if (rocketRef.current) {
           const rocketWidth = 50;
           const rocketHeight = 50;
+
           ctx.save();
           ctx.translate(posX, posY);
-          ctx.rotate(Math.PI / 20);
           ctx.drawImage(rocketRef.current, -rocketWidth/2, -rocketHeight/2, rocketWidth, rocketHeight);
           ctx.restore();
         }
