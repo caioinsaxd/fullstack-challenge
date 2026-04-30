@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "./prisma.service";
 
-const STARTING_BALANCE = parseInt(process.env.STARTING_BALANCE || "10000", 10);
+const STARTING_BALANCE = parseInt(process.env.STARTING_BALANCE || "1000000", 10);
 
 @Injectable()
 export class WalletRepository {
